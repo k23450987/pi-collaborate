@@ -10,6 +10,21 @@ let sdk=process.env.PI_SDK_PATH;
 try{sdk ||= dirname(dirname(require.resolve('@earendil-works/pi-coding-agent')));}catch{}
 const cwd=fileURLToPath(new URL('..',import.meta.url));
 
+test('Pi package resource loader accepts host dependency declarations', {skip:!sdk},async t=>{
+  const {DefaultResourceLoader}=await import(pathToFileURL(join(sdk,'dist/core/resource-loader.js')).href);
+  const {SettingsManager}=await import(pathToFileURL(join(sdk,'dist/core/settings-manager.js')).href);
+  const agentDir=mkdtempSync('/private/tmp/collab-package-');
+  t.after(()=>rmSync(agentDir,{recursive:true,force:true}));
+  const loader=new DefaultResourceLoader({cwd:agentDir,agentDir,
+    settingsManager:SettingsManager.inMemory({packages:[cwd]}),
+    noSkills:true,noPromptTemplates:true,noThemes:true,noContextFiles:true});
+  await loader.reload();
+  const loaded=loader.getExtensions();
+  assert.deepEqual(loaded.errors,[]);
+  assert.deepEqual(loaded.warnings??[],[]);
+  assert.ok(loaded.extensions.some(extension=>extension.tools.has('collaborate')));
+});
+
 test('Pi loader, actual renderer and lifecycle deliver visible idle/steer cards without intercom', {skip:!sdk},async t=>{
   const {loadExtensions}=await import(pathToFileURL(join(sdk,'dist/core/extensions/loader.js')).href);
   const {visibleWidth}=await import(pathToFileURL(require.resolve('@earendil-works/pi-tui',{paths:[sdk]})).href);

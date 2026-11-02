@@ -24,6 +24,17 @@ Codex 可直接调用 `node /absolute/path/to/pi-collaborate-plugin/bin/pi-colla
 skills add k23450987/pi-collaborate --skill pi-collaborate --agent codex --global
 ```
 
+该命令会把 skill 安装到 `~/.agents/skills/pi-collaborate`，Pi 也会自动发现这个目录。若同时通过 Pi 包加载同名 skill，会出现 collision。保留全局共享 skill，在 `~/.pi/agent/settings.json` 的 `packages` 数组中，仅把本插件的来源条目改为对象，关闭包内重复的 skill 入口：
+
+```json
+{
+  "source": "https://github.com/k23450987/pi-collaborate",
+  "skills": []
+}
+```
+
+保留其他包条目；若使用本地目录或其他来源安装，`source` 保持原值。扩展仍正常加载，Codex 和 Pi 共用全局 skill。没有单独安装全局 skill 时，保留默认配置即可。修改配置后在 Pi 执行 `/reload`。
+
 单独安装 skill 后，按 `pi list` 找到 **Pi 扩展安装目录**，调用其中的 `bin/pi-collab.mjs`；skill 本身不包含 CLI，不能按 skill 安装目录推算脚本路径。默认全局 Git 安装通常位于 `~/.pi/agent/git/github.com/k23450987/pi-collaborate/`。
 
 旧版 skill 同样名为 `pi-collaborate`：切换时应让 Codex 的该入口指向本插件的 `skills/pi-collaborate`，避免同时发现两份同名 skill。原文件可备份，但不要继续将旧版 ask/stdout 流程用于新插件。
@@ -96,4 +107,4 @@ PI_SDK_PATH=/path/to/node_modules/@earendil-works/pi-coding-agent npm test
 npm pack --dry-run
 ```
 
-测试覆盖真实本地 IPC/CLI、SQLite 重开恢复、超时晚答、队列、去重、清理保护以及 Unix WebSocket 协议；可选 Pi SDK 测试通过宿主加载器验证真实卡片渲染与生命周期。协议测试使用本地假服务，不消耗模型 token。实机模型验收需安装到目标 Pi 后执行，不由安装脚本自动派发。
+测试覆盖真实本地 IPC/CLI、SQLite 重开恢复、超时晚答、队列、去重、清理保护以及 Unix WebSocket 协议；可选 Pi SDK 测试通过宿主资源加载器检查包声明，并验证真实卡片渲染与生命周期。协议测试使用本地假服务，不消耗模型 token。实机模型验收需安装到目标 Pi 后执行，不由安装脚本自动派发。
