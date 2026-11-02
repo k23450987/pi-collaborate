@@ -18,6 +18,14 @@ pi install /absolute/path/to/pi-collaborate-plugin
 
 Codex 可直接调用 `node /absolute/path/to/pi-collaborate-plugin/bin/pi-collab.mjs`；也可用 `npm link` 将 `pi-collab` 加入 PATH。将 `skills/pi-collaborate` 加入 Codex 的 skills 搜索目录，两端读取同一份说明。安装本插件不会自动卸载旧插件或修改旧 skill。
 
+也可以用本机 `skills` 命令单独为 Codex 安装共享 skill：
+
+```bash
+skills add k23450987/pi-collaborate --skill pi-collaborate --agent codex --global
+```
+
+单独安装 skill 后，按 `pi list` 找到 **Pi 扩展安装目录**，调用其中的 `bin/pi-collab.mjs`；skill 本身不包含 CLI，不能按 skill 安装目录推算脚本路径。默认全局 Git 安装通常位于 `~/.pi/agent/git/github.com/k23450987/pi-collaborate/`。
+
 旧版 skill 同样名为 `pi-collaborate`：切换时应让 Codex 的该入口指向本插件的 `skills/pi-collaborate`，避免同时发现两份同名 skill。原文件可备份，但不要继续将旧版 ask/stdout 流程用于新插件。
 
 ## 第一次协作
