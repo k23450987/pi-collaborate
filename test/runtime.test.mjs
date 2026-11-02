@@ -6,14 +6,14 @@ import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {Runtime} from '../src/runtime.mjs';
 import {call} from '../src/ipc.mjs';
-const exec=promisify(execFile),cli=fileURLToPath(new URL('../bin/pi-collab.mjs',import.meta.url));
+const exec=promisify(execFile),cli=fileURLToPath(new URL('../bin/pi-collab',import.meta.url));
 test('real CLI and IPC dispatch to an existing Pi adapter; offline result read still works',async t=>{
   const home=mkdtempSync('/private/tmp/collab-ipc-');const received=[],notifications=[];
   const codex={readyThread:async()=>{},contains:async()=>false,deliver:async(m,text,begin)=>{begin();notifications.push(m);return {turnId:'test-turn'};},close(){}};
   const runtime=new Runtime({home,piId:'existing-pi-session',name:'Existing Pi',cwd:home,cliPath:cli,codex,deliver:async m=>received.push(m)});runtime.canFollowUp=()=>true;
   t.after(async()=>{await runtime.stop();rmSync(home,{recursive:true,force:true});});await runtime.start();
   const run=async(...args)=>{
-    const r=await exec(process.execPath,[cli,'--home',home,'--thread','codex-thread',...args],{env:{...process.env,CODEX_THREAD_ID:'codex-thread'}});return JSON.parse(r.stdout);
+    const r=await exec(cli,['--home',home,'--thread','codex-thread',...args],{env:{...process.env,CODEX_THREAD_ID:'codex-thread'}});return JSON.parse(r.stdout);
   };
   await run('bind','--pi',runtime.piId,'--request-id','binding');
   const a=await run('start','--pi',runtime.piId,'--request-id','dispatch','--text','read-only task');await runtime.tick();

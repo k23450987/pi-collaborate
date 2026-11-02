@@ -1,4 +1,8 @@
 import { setTimeout as sleep } from 'node:timers/promises';
+/**
+ * @param {import('./store.mjs').Store} store
+ * @param {{taskId?:string,questionId?:string,waitMs?:number,signal?:AbortSignal}} options
+ */
 export async function waitFor(store, {taskId,questionId,waitMs=600000,signal}) {
   if(!Number.isSafeInteger(waitMs)||waitMs<0||waitMs>2147483647)throw new Error('waitMs must be an integer from 0 to 2147483647');
   const deadline=Date.now()+waitMs;

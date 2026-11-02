@@ -9,7 +9,7 @@ import { Runtime } from './src/runtime.mjs';
 import { stateHome } from './src/paths.mjs';
 import { waitFor } from './src/wait.mjs';
 
-const cliPath=fileURLToPath(new URL('./bin/pi-collab.mjs',import.meta.url));
+const cliPath=fileURLToPath(new URL('./bin/pi-collab',import.meta.url));
 const Actions=['send','ask','reply','report','status','inbox','read','ack'] as const;
 const Params=Type.Object({
   action:Type.Union(Actions.map(v=>Type.Literal(v))),

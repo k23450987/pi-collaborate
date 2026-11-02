@@ -7,20 +7,20 @@ description: Codex 与现有 Pi 会话通过 pi-collab CLI 和 collaborate 工�
 
 ## Codex 协调方
 
-使用 **Pi 已安装扩展目录下的 CLI**。先运行 `pi list`，找到 `k23450987/pi-collaborate` 对应的实际安装目录，再使用该目录中的 `bin/pi-collab.mjs`。
+使用 **Pi 已安装扩展目录下的 CLI**。先运行 `pi list`，找到 `k23450987/pi-collaborate` 对应的实际安装目录，再直接执行该目录中的 `bin/pi-collab`。它是由 Node 运行的可执行脚本，不需要加入 PATH。
 
 默认全局 Git 安装的调用示例（实际路径以 `pi list` 为准）：
 
 ```bash
-PI_COLLAB_CLI="$HOME/.pi/agent/git/github.com/k23450987/pi-collaborate/bin/pi-collab.mjs"
-node "$PI_COLLAB_CLI" --help
+PI_COLLAB_CLI="$HOME/.pi/agent/git/github.com/k23450987/pi-collaborate/bin/pi-collab"
+"$PI_COLLAB_CLI" --help
 ```
 
-后续所有 CLI 操作都使用 `node "$PI_COLLAB_CLI"`。新的 shell 调用需重新设置变量，或直接使用已确认的 CLI 绝对路径。通过 `skills` 安装的 skill 目录只提供说明，不用于定位 CLI。
+后续所有 CLI 操作都使用 `"$PI_COLLAB_CLI"`。新的 shell 调用需重新设置变量，或直接使用已确认的 CLI 绝对路径。通过 `skills` 安装的 skill 目录只提供说明，不用于定位 CLI。
 
-1. `node "$PI_COLLAB_CLI" list` 找到用户指定的**已有 Pi 会话完整 ID**。插件没有运行时告知用户，不擅自启动新 Pi。
-2. `node "$PI_COLLAB_CLI" bind --pi <Pi-ID> --thread "$CODEX_THREAD_ID" --request-id <唯一ID>` 建立绑定。Codex 必须与插件连接同一个 app-server。
-3. `node "$PI_COLLAB_CLI" start --pi <Pi-ID> --request-id <唯一ID> --text <任务>` 派发一次，保存返回的 taskId。大段正文可用 `--text-file`。
+1. `"$PI_COLLAB_CLI" list` 找到用户指定的**已有 Pi 会话完整 ID**。插件没有运行时告知用户，不擅自启动新 Pi。
+2. `"$PI_COLLAB_CLI" bind --pi <Pi-ID> --thread "$CODEX_THREAD_ID" --request-id <唯一ID>` 建立绑定。Codex 必须与插件连接同一个 app-server。
+3. `"$PI_COLLAB_CLI" start --pi <Pi-ID> --request-id <唯一ID> --text <任务>` 派发一次，保存返回的 taskId。大段正文可用 `--text-file`。
 4. 纠偏使用 `send --task <taskId> --request-id <唯一ID> --text <内容>`；不重新 start，不改变回报目标。
 5. 收到 app-server 协作通知时先 `read --message <messageId>`。只有 ask 产生的 questionId 可以交给 `reply --question <questionId> --request-id <唯一ID> --text <答案>`。
 6. 完成通知后 `result --task <taskId>`，检查工作与验证证据，再 `ack --task <taskId> --version <版本> --request-id <唯一ID>` 确认收取。ack 不等于验收通过；继续修改用 `continue --task <taskId> --text <要求> --request-id <唯一ID>`，保留之前结果。

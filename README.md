@@ -16,7 +16,7 @@ pi install /absolute/path/to/pi-collaborate-plugin
 
 随后启动 Pi，或在已有会话 `/reload`。Pi 从 package manifest 加载扩展与共享 skill。只安装 skill 不会启动通信。
 
-Codex 可直接调用 `node /absolute/path/to/pi-collaborate-plugin/bin/pi-collab.mjs`；也可用 `npm link` 将 `pi-collab` 加入 PATH。将 `skills/pi-collaborate` 加入 Codex 的 skills 搜索目录，两端读取同一份说明。安装本插件不会自动卸载旧插件或修改旧 skill。
+Codex 直接执行 `/absolute/path/to/pi-collaborate-plugin/bin/pi-collab`。它是带 `#!/usr/bin/env node` 的无扩展名 JavaScript 可执行脚本，无需配置 PATH。CLI 的 TypeScript 入口为 `src/cli.ts`，构建产物已随仓库提供；Pi 安装时不需要编译。将 `skills/pi-collaborate` 加入 Codex 的 skills 搜索目录，两端读取同一份说明。
 
 也可以用本机 `skills` 命令单独为 Codex 安装共享 skill：
 
@@ -35,7 +35,7 @@ skills add k23450987/pi-collaborate --skill pi-collaborate --agent codex --globa
 
 保留其他包条目；若使用本地目录或其他来源安装，`source` 保持原值。扩展仍正常加载，Codex 和 Pi 共用全局 skill。没有单独安装全局 skill 时，保留默认配置即可。修改配置后在 Pi 执行 `/reload`。
 
-单独安装 skill 后，按 `pi list` 找到 **Pi 扩展安装目录**，调用其中的 `bin/pi-collab.mjs`；skill 本身不包含 CLI，不能按 skill 安装目录推算脚本路径。默认全局 Git 安装通常位于 `~/.pi/agent/git/github.com/k23450987/pi-collaborate/`。
+单独安装 skill 后，按 `pi list` 找到 **Pi 扩展安装目录**，调用其中的 `bin/pi-collab`；skill 本身不包含 CLI，不能按 skill 安装目录推算脚本路径。默认全局 Git 安装通常位于 `~/.pi/agent/git/github.com/k23450987/pi-collaborate/`。
 
 旧版 skill 同样名为 `pi-collaborate`：切换时应让 Codex 的该入口指向本插件的 `skills/pi-collaborate`，避免同时发现两份同名 skill。原文件可备份，但不要继续将旧版 ask/stdout 流程用于新插件。
 
@@ -44,18 +44,19 @@ skills add k23450987/pi-collaborate --skill pi-collaborate --agent codex --globa
 以下命令在 Codex 工具中运行；若在普通终端运行，用 `--thread <Codex会话ID>` 代替环境变量。
 
 ```bash
-pi-collab list
-pi-collab bind --pi <Pi会话ID> --thread "$CODEX_THREAD_ID" --request-id bind-1
-pi-collab start --pi <Pi会话ID> --request-id task-1 --text '只读检查当前变更，报告验证证据'
-pi-collab send --task <返回的taskId> --request-id correction-1 --text '同时检查边界条件'
-pi-collab inbox
-pi-collab read --message <messageId>
-pi-collab reply --question <questionId> --request-id answer-1 --text '保持只读，不修改文件'
-pi-collab result --task <taskId>
-pi-collab ack --task <taskId> --version 1 --request-id collect-1
+PI_COLLAB_CLI="$HOME/.pi/agent/git/github.com/k23450987/pi-collaborate/bin/pi-collab"
+"$PI_COLLAB_CLI" list
+"$PI_COLLAB_CLI" bind --pi <Pi会话ID> --thread "$CODEX_THREAD_ID" --request-id bind-1
+"$PI_COLLAB_CLI" start --pi <Pi会话ID> --request-id task-1 --text '只读检查当前变更，报告验证证据'
+"$PI_COLLAB_CLI" send --task <返回的taskId> --request-id correction-1 --text '同时检查边界条件'
+"$PI_COLLAB_CLI" inbox
+"$PI_COLLAB_CLI" read --message <messageId>
+"$PI_COLLAB_CLI" reply --question <questionId> --request-id answer-1 --text '保持只读，不修改文件'
+"$PI_COLLAB_CLI" result --task <taskId>
+"$PI_COLLAB_CLI" ack --task <taskId> --version 1 --request-id collect-1
 ```
 
-`pi-collab --help` 给出全部命令。所有输出均为 JSON。`--text-file` 支持文件输入。修改命令最好显式指定 requestId；省略时会先在 stderr 输出生成的 ID，以便提交中断后用相同 ID 和正文重试。
+`"$PI_COLLAB_CLI" --help` 给出全部命令。新的 shell 调用需重设变量，或直接使用 CLI 绝对路径。所有输出均为 JSON。`--text-file` 支持文件输入。修改命令最好显式指定 requestId；省略时会先在 stderr 输出生成的 ID，以便提交中断后用相同 ID 和正文重试。
 
 Pi 使用 `collaborate` 的 send/ask/reply/report/read/ack；`/collaborate` 查看绑定及收件箱。普通助手输出不转发。任务结果只有显式 report completed/failed/cancelled 才会提交。来源始终取绑定记录，而不取消息正文。
 
@@ -92,15 +93,19 @@ CLI 查询以只读方式打开已有数据库，在线修改交给 Pi 的 IPC �
 启动时和每小时清理。只有终态、全部结果和消息均已明确收取、无开放问题的任务，才会在最后收取满 30 天后删除。已确认普通通知保留 7 天；未收取结果、未回答问题、进行中/受阻/unknown 任务不自动清除。精简 requestId tombstone 保留，用于阻止过期请求重新执行。SQLite 会重用释放的页，不在每次清理时自动 VACUUM。
 
 ```bash
-pi-collab prune --dry-run    # 默认就是预览
-pi-collab prune --apply      # 按保留策略执行
+"$PI_COLLAB_CLI" prune --dry-run    # 默认就是预览
+"$PI_COLLAB_CLI" prune --apply      # 按保留策略执行
 ```
 
 `autoCleanup:false` 关闭自动清理；手动 prune 仍可执行。默认 app-server socket 为 `$CODEX_HOME/app-server-control/app-server-control.sock`，可用 `PI_COLLAB_CODEX_SOCKET` 指定已有本地 Unix WebSocket 服务。
 
 ## 验证
 
+修改 CLI 或共享模块后，在源码仓库安装开发依赖并重新构建；构建会更新 `bin/pi-collab` 并设置可执行权限。该产物应与源码一起提交，供 Pi 直接安装。`check` 同时检查 TypeScript 类型、产物是否与源码一致以及 JavaScript 语法。旧 `bin/pi-collab.mjs` 入口保留转发，已送达的历史通知仍能执行。
+
 ```bash
+npm install --legacy-peer-deps
+npm run build
 npm run check
 npm test
 PI_SDK_PATH=/path/to/node_modules/@earendil-works/pi-coding-agent npm test

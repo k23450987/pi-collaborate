@@ -4,12 +4,56 @@
   "private": true,
   "description": "Durable communication between an existing Pi session and Codex app-server",
   "type": "module",
-  "engines": { "node": ">=22.19.0" },
-  "bin": { "pi-collab": "./bin/pi-collab.mjs" },
-  "files": ["extension.ts", "src", "bin", "skills", "README.md"],
-  "pi": { "extensions": ["./extension.ts"], "skills": ["./skills"] },
-  "scripts": { "test": "node --test test/*.test.mjs", "check": "node --check src/store.mjs && node --check src/runtime.mjs && node --check src/codex.mjs && node --check bin/pi-collab.mjs" },
-  "dependencies": { "ws": "^8.18.3" },
-  "peerDependencies": { "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*", "typebox": "*" },
-  "peerDependenciesMeta": { "@earendil-works/pi-coding-agent": {"optional":true}, "@earendil-works/pi-tui": {"optional":true}, "typebox": {"optional":true} }
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "bin": {
+    "pi-collab": "./bin/pi-collab"
+  },
+  "files": [
+    "extension.ts",
+    "src",
+    "bin",
+    "skills",
+    "README.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./extension.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:check": "node scripts/build.mjs --check",
+    "pretest": "npm run build",
+    "test": "node --test test/*.test.mjs",
+    "check": "tsc --noEmit && npm run build:check && node --check src/store.mjs && node --check src/runtime.mjs && node --check src/codex.mjs && node --check bin/pi-collab"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "@earendil-works/pi-tui": {
+      "optional": true
+    },
+    "typebox": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
 }
