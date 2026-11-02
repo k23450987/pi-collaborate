@@ -1,0 +1,40 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {fileURLToPath} from 'node:url';
+import {Runtime} from '../src/runtime.mjs';
+import {call} from '../src/ipc.mjs';
+const exec=promisify(execFile),cli=fileURLToPath(new URL('../bin/pi-collab.mjs',import.meta.url));
+test('real CLI and IPC dispatch to an existing Pi adapter; offline result read still works',async t=>{
+  const home=mkdtempSync('/private/tmp/collab-ipc-');const received=[],notifications=[];
+  const codex={readyThread:async()=>{},contains:async()=>false,deliver:async(m,text,begin)=>{begin();notifications.push(m);return {turnId:'test-turn'};},close(){}};
+  const runtime=new Runtime({home,piId:'existing-pi-session',name:'Existing Pi',cwd:home,cliPath:cli,codex,deliver:async m=>received.push(m)});runtime.canFollowUp=()=>true;
+  t.after(async()=>{await runtime.stop();rmSync(home,{recursive:true,force:true});});await runtime.start();
+  const run=async(...args)=>{
+    const r=await exec(process.execPath,[cli,'--home',home,'--thread','codex-thread',...args],{env:{...process.env,CODEX_THREAD_ID:'codex-thread'}});return JSON.parse(r.stdout);
+  };
+  await run('bind','--pi',runtime.piId,'--request-id','binding');
+  const a=await run('start','--pi',runtime.piId,'--request-id','dispatch','--text','read-only task');await runtime.tick();
+  assert.equal(received.length,1);const duplicate=await run('start','--pi',runtime.piId,'--request-id','dispatch','--text','read-only task');assert.equal(a.task.id,duplicate.task.id);
+  const q=runtime.execute({action:'ask',requestId:'pi-question',taskId:a.task.id,text:'May I proceed?'});await runtime.tick();assert.equal(notifications[0].questionId,q.question.id);
+  await run('reply','--question',q.question.id,'--request-id','answer','--text','Proceed within scope');await runtime.tick();
+  assert.equal(received[1].kind,'reply');assert.equal(received[1].questionId,q.question.id);
+  runtime.execute({action:'report',requestId:'pi-complete',taskId:a.task.id,state:'completed',text:'RESULT_TOKEN'});await runtime.tick();
+  await assert.rejects(call(runtime.path,{piId:runtime.piId,epoch:'old-epoch',threadId:'codex-thread',input:{action:'status'}}),{code:'STALE_ENDPOINT'});
+  await runtime.stop();const result=await run('result','--task',a.task.id);assert.equal(result.result.text,'RESULT_TOKEN');assert.equal(result.result.ackAt,null);
+  const ack=await run('ack','--task',a.task.id,'--version','1','--request-id','collect');assert.equal(ack.version,1);
+  assert.equal((await run('result','--task',a.task.id)).result.text,'RESULT_TOKEN');
+});
+test('failed preflight can retry; unknown generation acceptance cannot automatically duplicate a turn',async t=>{
+  const home=mkdtempSync('/private/tmp/collab-unknown-');let attempts=0;
+  const codex={readyThread:async()=>{},contains:async()=>false,deliver:async(m,text,begin)=>{attempts++;begin();const e=new Error('response lost');e.code='RPC_UNKNOWN';throw e;},close(){}};
+  const runtime=new Runtime({home,piId:'pi',cwd:home,cliPath:cli,codex,deliver:async()=>{}});
+  t.after(async()=>{await runtime.stop();rmSync(home,{recursive:true,force:true});});await runtime.start();
+  const c={actor:'codex',piId:'pi',threadId:'codex'};
+  runtime.store.execute({action:'bind',requestId:'bind'},c);const a=runtime.store.execute({action:'start',requestId:'start',text:'task'},c);await runtime.tick();
+  const msg=runtime.execute({action:'send',requestId:'outgoing',taskId:a.task.id,text:'progress'});await runtime.tick();
+  assert.equal(runtime.store.message(msg.message.id).delivery,'unknown');runtime.nextCodexTry=0;await runtime.tick();assert.equal(attempts,1);
+  codex.contains=async()=>true;runtime.nextCodexTry=0;await runtime.tick();assert.equal(runtime.store.message(msg.message.id).delivery,'submitted');assert.equal(attempts,1);
+});

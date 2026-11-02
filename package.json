@@ -1,0 +1,15 @@
+{
+  "name": "pi-collaborate-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Durable communication between an existing Pi session and Codex app-server",
+  "type": "module",
+  "engines": { "node": ">=22.19.0" },
+  "bin": { "pi-collab": "./bin/pi-collab.mjs" },
+  "files": ["extension.ts", "src", "bin", "skills", "README.md"],
+  "pi": { "extensions": ["./extension.ts"], "skills": ["./skills"] },
+  "scripts": { "test": "node --test test/*.test.mjs", "check": "node --check src/store.mjs && node --check src/runtime.mjs && node --check src/codex.mjs && node --check bin/pi-collab.mjs" },
+  "dependencies": { "typebox": "^1.3.27", "ws": "^8.18.3" },
+  "peerDependencies": { "@earendil-works/pi-coding-agent": ">=1.2.0", "@earendil-works/pi-tui": ">=1.2.0" },
+  "peerDependenciesMeta": { "@earendil-works/pi-coding-agent": {"optional":true}, "@earendil-works/pi-tui": {"optional":true} }
+}
